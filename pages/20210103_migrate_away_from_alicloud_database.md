@@ -1,4 +1,4 @@
-# 阿里云云数据库迁移到自建数据库
+# 阿里云数据库Redis迁移到Kubernetes
 
 ## 背景
 
@@ -18,7 +18,7 @@
 
   一个入门级MySQL RDS实例大约每年3800元，而一个基于云盘的自建数据库仅需SSD云盘费用（1元/GB/月）以及集群中少许CPU内存资源。以20GB的MySQL为例存储费用仅为每年240元。
 
-  需要注意的是高效云盘/SSD云盘最小容量是20GB。https://www.alibabacloud.com/help/zh/doc-detail/134767.htm
+  需要注意的是高效云盘/SSD云盘最小容量是20GB。云盘使用限制详见：https://www.alibabacloud.com/help/zh/doc-detail/134767.htm
 
 * 备份
 
@@ -178,7 +178,7 @@ $ kubectl cp $rdb redis-master-0:/data/dump.rdb -n prod
 
 最后记得打开RDB，结合云盘快照应该可以避免大多数情况下的数据丢失
 
-## VPN
+## 本地连接
 
 最后聊一下一个实际的问题，即开发调试或者排查问题过程中需要连接到集群内的数据库或者Redis。
 
@@ -186,7 +186,7 @@ $ kubectl cp $rdb redis-master-0:/data/dump.rdb -n prod
 
 最容易想到的是将集群内MySQL/Redis的Service类型设置成NodePort，这样VPN连接后只需要连接到任意一台集群节点IP的对应端口即可。不过这样如果集群内节点发生变化（比如节点被移除），连接方式就失效了。
 
-事实上，还有一个更好的办法是利用集群配置的SLB，通过将Service类型设置成LoadBalancer，并且通过annotations指定要复用的SLB实例，并在SLB监听中增加相应端口即可实现暴露的IP不变。
+事实上，还有一个更好的办法是利用集群配置的SLB，通过将Service类型设置成LoadBalancer，并且通过annotations指定要复用的SLB实例，并在SLB监听中增加相应端口即可实现暴露的IP不变。具体参考：https://help.aliyun.com/document_detail/86531.html
 
 配置如下：
 
@@ -208,3 +208,6 @@ mysql-mysql   LoadBalancer   172.23.9.17   172.19.197.170   3306:32181/TCP   2d1
 
 其中 `EXTERNAL-IP` 即为对应SLB的内网IP，假设SLB监听配置的也是3306端口，则之后只需要通过 `172.19.197.170:3306` 即可访问到该数据库。
 
+### 总结
+
+本文总结了从阿里云数据库和Redis迁移到Kubernetes集群自建环境的一些经验，希望对大家有用。
